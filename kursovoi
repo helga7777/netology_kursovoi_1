@@ -1,0 +1,127 @@
+import time
+import requests
+from pprint import  pprint
+import vk_api
+import urllib.request
+import urllib3
+import image
+import shutil
+import json
+
+class YaUploader:
+    def __init__(self, token: str):
+        self.token = token
+
+    def create_folder(path):
+        """Создание папки."""
+        URL = 'https://cloud-api.yandex.net/v1/disk/resources'
+        return requests.put(f'{URL}?path={path}', headers={'Authorization': 'OAuth ' + token_ya}).json()
+
+    def upload(self, file_path: str):
+        """Метод загружает файлы по списку file_list на яндекс диск"""
+
+
+        for name in file_path:
+            # print(name)
+            url_photos = f'''{name['url']}'''
+            name_photos = f'''{name['likes']}.jpg'''
+            # print(url_photos)
+            name_folder = 'test5'
+            YaUploader.create_folder(name_folder)
+            upload_url = 'https://cloud-api.yandex.net/v1/disk/resources/upload?path='
+            savefile = f'{name_folder}/{name_photos}'
+            response = requests.get(f'{upload_url}/{savefile}', headers={'Authorization': 'OAuth ' + self.token}).json()
+            # response1 = requests.post(response['href'], headers={'Authorization': 'OAuth ' + self.token}, data=params, params=params)
+            # print(photos_laik)
+            # сохраняет картинку в папку на диск с программой
+            # url_photos = 'https://sun9-28.userapi.com/impf/c850732/v850732336/16fa43/3b7pxN3vzmI.jpg?size=400x400&quality=96&sign=e43d16ae62020287b2e5ae9073d3f878&c_uniq_tag=5rB9bM19KvnvwLaYvsXilF2uT-MWISzsiNrvNJH65UQ&type=album'
+            response1 = requests.get(url_photos, stream=True)
+            with open(name_photos, 'wb') as file:
+                shutil.copyfileobj(response1.raw, file)
+
+            # сохраняет картинку с диска на яндекс диск
+            files = {'file': (name_photos, open(name_photos, 'rb'), 'image/png')}
+            response1 = requests.post(response['href'], files=files)
+
+
+
+class VkUser:
+    url_api_vk = 'https://api.vk.com/method/'
+    def __init__(self,token):
+        self.params = {
+            'access_token': token,
+            'v': '5.131'
+        }
+    def user(self, user_id=None):
+        url_use = self.url_api_vk + 'users.get'
+        params = {
+            'user': '1',
+            'access_token': token,
+            'fields': 'photo_max_orig',
+            'v': '5.131'
+        }
+        #photo_max_orig URL фотографии максимального размера.
+        #counters значение fields возвращает о количество фото и альбомах и т.д.
+        req = requests.get(url_use, params=params)
+        #
+        return req.json()['response'][0]['id']
+
+
+    def photos(self, user_id=None):
+        url_photos = self.url_api_vk + 'photos.get'
+        photos_params = {
+            'owner_id': vk_client.user(user_id),
+            'album_id': 'profile',
+            'extended': 1,
+            'count': 10,
+            'photo_sizes': 1
+        }
+
+        req = requests.get(url_photos, params={**self.params, **photos_params})
+        return req.json()['response']['items']
+
+    def photos_max(self, list_photo):
+        list_album = []
+        list_album_new = []
+        list_photo_url_likes = []
+        for album in list_photo:
+            album['sizes'] = sorted(album['sizes'], key=lambda user: user['type'])
+            # print(album)
+            # print(album['sizes'])
+            # list_album_new.append(list_album[-1])
+        for id in list_photo:
+            # print(id['sizes'][-1]['url'])
+            # print(id['likes']['count'])
+            list_photo_url_likes.append({'url':id['sizes'][-1]['url'], 'likes':id['likes']['count'], 'type':id['sizes'][-1]['type']})
+        return list_photo_url_likes
+       
+
+    def photos_laik(self, list_photo):
+        list_photo_new = []
+        dict_photo_new = []
+        for y in list_photo:
+            y.pop('url')
+            y['file_name'] = str(y.pop('likes')) + '.jpg'
+            y['size'] = y.pop('type')
+            list_photo_new.append(y)
+        # print(list_photo_new)
+        with open('photo.json', 'a', encoding='utf-8') as file:
+            json.dump(list_photo_new, file)
+            file.write('\n')
+        return list_photo_new
+
+
+
+token = ''
+id_client = 'https://vk.com/begemot_korovin'
+vk_client = VkUser(token)
+vk_client.user(id_client)
+vk_client.photos(id_client)
+vk_client.photos_max(vk_client.photos(id_client))
+vk_client.photos_laik(vk_client.photos_max(vk_client.photos(id_client)))
+
+
+path_to_file = vk_client.photos_max(vk_client.photos(id_client))
+token_ya = ''
+uploader = YaUploader(token='')
+result = uploader.upload(path_to_file)
