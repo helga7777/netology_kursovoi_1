@@ -1,0 +1,6 @@
+pygame~=2.1.2
+requests~=2.27.1
+tqdm~=4.63.0
+yadisk~=1.2.15
+YaDiskClient~=0.5.0
+progressbar~=2.5
